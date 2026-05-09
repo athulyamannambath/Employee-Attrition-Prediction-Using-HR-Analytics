@@ -109,7 +109,11 @@ An interactive Streamlit app is included for real-time risk assessment by HR man
 [Employee Attrition Prediction App] (https://employee-attrition-prediction-using-hr-analytics-rgymioa78pgmk.streamlit.app/)
 
 ## 📸 App Preview
+### 🔹 Main Interface
+![App UI](app_ui.png)
 
+### 🔹 Prediction Demo
+![App Demo](Demo.png)
 
 ## 💻 How to Run Locally
 
