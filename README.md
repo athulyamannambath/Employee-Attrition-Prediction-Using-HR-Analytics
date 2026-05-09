@@ -56,6 +56,7 @@ employee-attrition-prediction/
     ├── chi2_scores.png
     ├── anova_scores.png
     └── confusion_matrices.png
+```
 ## ⚙️ Model & Methodology
 
 ### 🔹 Preprocessing
