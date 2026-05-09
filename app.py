@@ -1,83 +1,71 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
 import shap
 import matplotlib.pyplot as plt
 
-# -------------------------
-# Load artifacts
-# -------------------------
+# ---------------- LOAD ----------------
 model = joblib.load("model.pkl")
-scaler = joblib.load("scaler.pkl")
 features = joblib.load("features.pkl")
 
 st.set_page_config(page_title="Employee Attrition Predictor", layout="wide")
+st.title("👥 Employee Attrition Prediction System")
 
-st.title("👥 Employee Attrition Prediction App")
-st.write("Predict whether an employee will leave using ML + SHAP explanations")
+st.sidebar.header("Employee Details")
 
-# -------------------------
-# INPUT SECTION (must match dataset logic)
-# -------------------------
-age = st.slider("Age", 18, 60, 30)
-income = st.number_input("Monthly Income", 1000, 20000, 5000)
-distance = st.slider("Distance From Home", 1, 30, 5)
-job_level = st.selectbox("Job Level", [1, 2, 3, 4, 5])
-overtime = st.selectbox("OverTime", ["Yes", "No"])
-job_satisfaction = st.slider("Job Satisfaction", 1, 4, 3)
+# ---------------- INPUTS (ONLY NUMERIC / SAFE FEATURES) ----------------
+age = st.sidebar.slider("Age", 18, 60, 30)
+distance = st.sidebar.slider("Distance From Home", 1, 30, 5)
+monthly_income = st.sidebar.number_input("Monthly Income", 1000, 20000, 5000)
+job_level = st.sidebar.slider("Job Level", 1, 5, 2)
+total_years = st.sidebar.slider("Total Working Years", 0, 40, 10)
+years_company = st.sidebar.slider("Years at Company", 0, 40, 5)
+job_satisfaction = st.sidebar.slider("Job Satisfaction", 1, 4, 3)
+work_life_balance = st.sidebar.slider("Work Life Balance", 1, 4, 3)
+env_satisfaction = st.sidebar.slider("Environment Satisfaction", 1, 4, 3)
+job_involvement = st.sidebar.slider("Job Involvement", 1, 4, 3)
 
-# encode categorical
-overtime_val = 1 if overtime == "Yes" else 0
+overtime = st.sidebar.selectbox("OverTime (0 = No, 1 = Yes)", [0, 1])
 
-# -------------------------
-# BUILD INPUT ROW
-# -------------------------
-input_dict = {
+# ---------------- BUILD INPUT ----------------
+input_dict = {col: 0 for col in features}
+
+input_dict.update({
     "Age": age,
-    "MonthlyIncome": income,
     "DistanceFromHome": distance,
+    "MonthlyIncome": monthly_income,
     "JobLevel": job_level,
-    "OverTime": overtime_val,
-    "JobSatisfaction": job_satisfaction
-}
+    "TotalWorkingYears": total_years,
+    "YearsAtCompany": years_company,
+    "JobSatisfaction": job_satisfaction,
+    "WorkLifeBalance": work_life_balance,
+    "EnvironmentSatisfaction": env_satisfaction,
+    "JobInvolvement": job_involvement,
+    "OverTime": overtime
+})
 
-df = pd.DataFrame([input_dict])
+input_df = pd.DataFrame([input_dict])
 
-# add missing columns (VERY IMPORTANT)
-for col in features:
-    if col not in df.columns:
-        df[col] = 0
+# ensure correct column order
+input_df = input_df[features]
 
-# reorder columns exactly like training
-df = df[features]
+# ---------------- PREDICTION ----------------
+if st.button("Predict Attrition Risk"):
 
-# scale input
-df_scaled = scaler.transform(df)
-
-# -------------------------
-# PREDICTION
-# -------------------------
-if st.button("Predict Attrition"):
-
-    prob = model.predict_proba(df_scaled)[0][1]
-    pred = model.predict(df_scaled)[0]
+    prob = model.predict_proba(input_df)[0][1]
+    pred = model.predict(input_df)[0]
 
     if pred == 1:
-        st.error(f"🔴 Employee likely to LEAVE (Risk: {prob:.2f})")
+        st.error(f"⚠️ Employee likely to LEAVE (Risk: {prob:.2f})")
     else:
-        st.success(f"🟢 Employee likely to STAY (Risk: {prob:.2f})")
+        st.success(f"✅ Employee likely to STAY (Risk: {prob:.2f})")
 
-    # -------------------------
-    # SHAP EXPLANATION
-    # -------------------------
-    st.subheader("🔬 SHAP Explainability")
+    # ---------------- SHAP ----------------
+    st.subheader("🔬 Why this prediction?")
 
-    explainer = shap.Explainer(model)
-    shap_values = explainer(df_scaled)
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_df)
 
     fig, ax = plt.subplots()
-    shap.plots.waterfall(shap_values[0], show=False)
+    shap.summary_plot(shap_values, input_df, show=False)
     st.pyplot(fig)
-
-    st.info("Red = increases attrition risk, Green = decreases risk")
