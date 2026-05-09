@@ -121,3 +121,12 @@ An interactive Streamlit app is included for real-time risk assessment by HR man
 ```bash
 git clone [https://github.com/athulyamannambath/Employee-Attrition-Prediction-Using-HR-Analytics.git](https://github.com/athulyamannambath/Employee-Attrition-Prediction-Using-HR-Analytics.git)
 cd Employee-Attrition-Prediction-Using-HR-Analytics
+```
+**2. Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+**3. Run the App**
+```bash
+streamlit run app.py
+```
