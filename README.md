@@ -3,6 +3,10 @@ Python ML Deployment
 
 A production-ready machine learning system for predicting employee turnover (attrition) and uncovering the hidden drivers behind why employees leave. This project integrates statistical feature selection, class imbalance handling, explainable AI (SHAP), and a deployed Streamlit web application.
 
+## 👥 Team Members
+* **Ayana Santhosh Khan**
+* **Hemalekshmi R**
+* **Athulya Mannambath**
 ## 📌 Problem Statement
 High employee turnover is a critical challenge for modern organizations due to:
 
