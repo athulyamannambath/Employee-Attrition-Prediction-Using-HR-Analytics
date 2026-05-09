@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 
-# ---------------- GLOBAL CHART STYLE (white text for dark theme) ----------------
+# ---------------- GLOBAL CHART STYLE ----------------
 plt.rcParams.update({
     "text.color":        "white",
     "axes.labelcolor":   "white",
@@ -44,32 +44,46 @@ years_company = st.sidebar.slider("Years at Company", 0, 40, 5)
 department = st.sidebar.selectbox(
     "Department", ["Sales", "Research & Development", "Human Resources"])
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Prediction Sensitivity")
+threshold = st.sidebar.slider(
+    "Decision Threshold",
+    min_value=0.10, max_value=0.90, value=0.30, step=0.05,
+    help="Lower = model flags more employees as at-risk. Default 0.30 is recommended for imbalanced HR data."
+)
+st.sidebar.caption(f"Employee predicted to LEAVE if risk score ≥ **{threshold:.2f}**")
+
 # ---------------- FEATURE VECTOR ----------------
+# Background features set to HIGH-RISK neutral values
+# (StockOptionLevel=0 and DistanceFromHome=0 are statistically high-risk)
 input_dict = {
     "OverTime":               1 if overtime == "Yes" else 0,
-    "YearsWithCurrManager":   4,
-    "MonthlyIncome":          5000,
-    "MaritalStatus":          1,
-    "DistanceFromHome":       7,
-    "JobRole":                0,
-    "YearsInCurrentRole":     3,
-    "JobLevel":               2,
-    "TotalWorkingYears":      10,
-    "EnvironmentSatisfaction":3,
+    "YearsWithCurrManager":   2,    # shorter tenure with manager = higher risk
+    "MonthlyIncome":          3500, # below-average income = higher risk
+    "MaritalStatus":          2,    # single = slightly higher risk
+    "DistanceFromHome":       10,   # moderate distance
+    "JobRole":                2,
+    "YearsInCurrentRole":     2,    # fewer years in role = higher risk
+    "JobLevel":               1,    # entry level = higher risk
+    "TotalWorkingYears":      5,    # less experience = higher risk
+    "EnvironmentSatisfaction":2,    # below average satisfaction
     "YearsAtCompany":         years_company,
-    "Age":                    36,
-    "StockOptionLevel":       1,
-    "JobInvolvement":         3,
+    "Age":                    29,   # younger = slightly higher risk
+    "StockOptionLevel":       0,    # no stock options = significantly higher risk
+    "JobInvolvement":         2,    # below average involvement
     "JobSatisfaction":        job_satisfaction,
 }
+
 input_df = pd.DataFrame([input_dict])[features]
 
 # ---------------- PREDICT ----------------
 if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
 
-    prob_leave = model.predict_proba(input_df)[0][1]
-    prob_stay  = model.predict_proba(input_df)[0][0]
-    pred       = model.predict(input_df)[0]
+    prob_leave = float(model.predict_proba(input_df)[0][1])
+    prob_stay  = float(model.predict_proba(input_df)[0][0])
+
+    # Use custom threshold instead of default 0.5
+    pred = 1 if prob_leave >= threshold else 0
 
     # ── Row 1: Verdict + Gauge ──────────────────────────────────────────
     col1, col2 = st.columns(2)
@@ -88,6 +102,7 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
 | **Job Satisfaction** | {job_satisfaction} / 4 |
 | **OverTime** | {overtime} |
 | **Years at Company** | {years_company} |
+| **Decision Threshold** | {threshold:.2f} |
         """)
 
     with col2:
@@ -102,22 +117,30 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
         ]:
             xs = np.cos(np.linspace(t1, t2, 100))
             ys = np.sin(np.linspace(t1, t2, 100))
-            xs2 = 0.6 * xs;  ys2 = 0.6 * ys
             ax_g.fill(
-                np.concatenate([xs, xs2[::-1]]),
-                np.concatenate([ys, ys2[::-1]]),
+                np.concatenate([xs, (0.6*xs)[::-1]]),
+                np.concatenate([ys, (0.6*ys)[::-1]]),
                 color=c, alpha=0.9
             )
         angle = np.pi * (1 - prob_leave)
         ax_g.annotate("", xy=(0.52*np.cos(angle), 0.52*np.sin(angle)),
                       xytext=(0, 0),
                       arrowprops=dict(arrowstyle="-|>", color="white", lw=2.5))
+
+        # Draw threshold marker on gauge
+        t_angle = np.pi * (1 - threshold)
+        ax_g.plot([0.58*np.cos(t_angle), 0.95*np.cos(t_angle)],
+                  [0.58*np.sin(t_angle), 0.95*np.sin(t_angle)],
+                  color="yellow", lw=2, linestyle="--")
+
         ax_g.set_xlim(-1.15, 1.15);  ax_g.set_ylim(-0.25, 1.15)
         ax_g.axis("off")
         ax_g.text(0, -0.18, f"{prob_leave*100:.1f}%", ha="center",
                   fontsize=20, fontweight="bold", color="white")
         ax_g.text(-1.05, -0.18, "Low",  fontsize=9, color="#2ecc71")
         ax_g.text(0.78,  -0.18, "High", fontsize=9, color="#e74c3c")
+        ax_g.text(0,      1.05, f"⚡ Threshold: {threshold:.2f}", ha="center",
+                  fontsize=8, color="yellow")
         ax_g.set_title("Attrition Risk", fontsize=12, pad=6, color="white")
         st.pyplot(fig_g, use_container_width=True)
 
@@ -137,7 +160,7 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
 
         for bar, val in zip(bars, values):
             ax_p.text(
-                min(val + 0.02, 1.0),
+                min(val + 0.02, 1.05),
                 bar.get_y() + bar.get_height() / 2,
                 f"{val*100:.1f}%",
                 va="center", fontsize=13, fontweight="bold", color="white"
@@ -145,7 +168,10 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
 
         ax_p.set_xlim(0, 1.2)
         ax_p.set_xlabel("Probability", fontsize=10, color="white")
-        ax_p.axvline(0.5, color="white", linestyle="--", linewidth=1, alpha=0.4)
+        # Show threshold line
+        ax_p.axvline(threshold, color="yellow", linestyle="--",
+                     linewidth=1.5, alpha=0.8, label=f"Threshold ({threshold:.2f})")
+        ax_p.legend(fontsize=8, loc="lower right")
         ax_p.spines[["top", "right", "left"]].set_visible(False)
         ax_p.tick_params(axis="y", labelsize=13, colors="white")
         ax_p.tick_params(axis="x", colors="white")
@@ -163,15 +189,13 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
         fig_fi, ax_fi = plt.subplots(figsize=(5, 5))
         bars_fi = ax_fi.barh(importance.index, importance.values,
                              color=bar_colors, edgecolor="none", height=0.6)
-
         for bar, val in zip(bars_fi, importance.values):
             ax_fi.text(val + 0.002,
                        bar.get_y() + bar.get_height() / 2,
                        f"{val:.3f}", va="center", fontsize=8, color="white")
 
         ax_fi.set_xlabel("Importance Score", fontsize=10, color="white")
-        ax_fi.set_title("XGBoost Feature Importance", fontsize=11,
-                        pad=8, color="white")
+        ax_fi.set_title("XGBoost Feature Importance", fontsize=11, pad=8, color="white")
         ax_fi.spines[["top", "right"]].set_visible(False)
         ax_fi.tick_params(colors="white", labelsize=9)
 
@@ -182,10 +206,10 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
 
     st.markdown("---")
 
-    # ── Risk Metrics + Suggestions ──────────────────────────────────────
+    # ── Risk Metrics ────────────────────────────────────────────────────
     st.subheader("💡 Risk Interpretation")
-    risk_level = ("🔴 High"   if prob_leave > 0.65 else
-                  "🟡 Medium" if prob_leave > 0.35 else
+    risk_level = ("🔴 High"   if prob_leave >= 0.5  else
+                  "🟡 Medium" if prob_leave >= 0.25 else
                   "🟢 Low")
 
     c1, c2, c3 = st.columns(3)
@@ -193,7 +217,7 @@ if st.sidebar.button("🔍 Predict Attrition Risk", use_container_width=True):
     c2.metric("Probability of Leaving", f"{prob_leave*100:.1f}%")
     c3.metric("Probability of Staying", f"{prob_stay*100:.1f}%")
 
-    if prob_leave > 0.5:
+    if pred == 1:
         st.warning("""
 **Suggested Retention Actions:**
 - 🕐 Review and reduce overtime workload
