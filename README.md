@@ -119,7 +119,7 @@ An interactive Streamlit app is included for real-time risk assessment by HR man
 
 **1. Clone Repository**
 ```bash
-git clone [https://github.com/athulyamannambath/Employee-Attrition-Prediction-Using-HR-Analytics.git](https://github.com/athulyamannambath/Employee-Attrition-Prediction-Using-HR-Analytics.git)
+git clone https://github.com/athulyamannambath/Employee-Attrition-Prediction-Using-HR-Analytics.git
 cd Employee-Attrition-Prediction-Using-HR-Analytics
 ```
 **2. Install Dependencies**
