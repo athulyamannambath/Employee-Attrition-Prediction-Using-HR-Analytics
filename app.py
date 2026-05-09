@@ -13,52 +13,49 @@ st.title("👥 Employee Attrition Prediction System")
 
 st.sidebar.header("Employee Details")
 
-# ---------------- INPUTS (ONLY NUMERIC / SAFE FEATURES) ----------------
-age = st.sidebar.slider("Age", 18, 60, 30)
-distance = st.sidebar.slider("Distance From Home", 1, 30, 5)
-monthly_income = st.sidebar.number_input("Monthly Income", 1000, 20000, 5000)
-job_level = st.sidebar.slider("Job Level", 1, 5, 2)
-total_years = st.sidebar.slider("Total Working Years", 0, 40, 10)
+# ---------------- 4 INPUTS ONLY ----------------
+job_satisfaction = st.sidebar.slider("Job Satisfaction", 1, 4, 3,
+    help="1 = Low, 2 = Medium, 3 = High, 4 = Very High")
+
+overtime = st.sidebar.selectbox("OverTime", ["No", "Yes"])
+
 years_company = st.sidebar.slider("Years at Company", 0, 40, 5)
-job_satisfaction = st.sidebar.slider("Job Satisfaction", 1, 4, 3)
-work_life_balance = st.sidebar.slider("Work Life Balance", 1, 4, 3)
-env_satisfaction = st.sidebar.slider("Environment Satisfaction", 1, 4, 3)
-job_involvement = st.sidebar.slider("Job Involvement", 1, 4, 3)
 
-overtime = st.sidebar.selectbox("OverTime (0 = No, 1 = Yes)", [0, 1])
+department = st.sidebar.selectbox("Department",
+    ["Sales", "Research & Development", "Human Resources"])
 
-# ---------------- BUILD INPUT ----------------
-input_dict = {col: 0 for col in features}
+# ---------------- BUILD INPUT (all 15 features, defaults for the rest) ----------------
+input_dict = {
+    "OverTime":               1 if overtime == "Yes" else 0,
+    "YearsWithCurrManager":   4,    # average default
+    "MonthlyIncome":          5000, # average default
+    "MaritalStatus":          1,    # 0=Divorced,1=Married,2=Single (median)
+    "DistanceFromHome":       7,    # average default
+    "JobRole":                0,    # encoded default
+    "YearsInCurrentRole":     3,    # average default
+    "JobLevel":               2,    # average default
+    "TotalWorkingYears":      10,   # average default
+    "EnvironmentSatisfaction":3,    # average default
+    "YearsAtCompany":         years_company,
+    "Age":                    36,   # average default
+    "StockOptionLevel":       1,    # average default
+    "JobInvolvement":         3,    # average default
+    "JobSatisfaction":        job_satisfaction,
+}
 
-input_dict.update({
-    "Age": age,
-    "DistanceFromHome": distance,
-    "MonthlyIncome": monthly_income,
-    "JobLevel": job_level,
-    "TotalWorkingYears": total_years,
-    "YearsAtCompany": years_company,
-    "JobSatisfaction": job_satisfaction,
-    "WorkLifeBalance": work_life_balance,
-    "EnvironmentSatisfaction": env_satisfaction,
-    "JobInvolvement": job_involvement,
-    "OverTime": overtime
-})
+input_df = pd.DataFrame([input_dict])[features]  # correct column order
 
-input_df = pd.DataFrame([input_dict])
-
-# ensure correct column order
-input_df = input_df[features]
-
-# ---------------- PREDICTION ----------------
+# ---------------- PREDICT ----------------
 if st.button("Predict Attrition Risk"):
 
     prob = model.predict_proba(input_df)[0][1]
     pred = model.predict(input_df)[0]
 
+    st.markdown("---")
     if pred == 1:
-        st.error(f"⚠️ Employee likely to LEAVE (Risk: {prob:.2f})")
+        st.error(f"⚠️ Employee likely to **LEAVE**  —  Risk Score: `{prob:.2f}`")
     else:
-        st.success(f"✅ Employee likely to STAY (Risk: {prob:.2f})")
+        st.success(f"✅ Employee likely to **STAY**  —  Risk Score: `{prob:.2f}`")
 
     # ---------------- SHAP ----------------
     st.subheader("🔬 Why this prediction?")
@@ -69,3 +66,4 @@ if st.button("Predict Attrition Risk"):
     fig, ax = plt.subplots()
     shap.summary_plot(shap_values, input_df, show=False)
     st.pyplot(fig)
+    
